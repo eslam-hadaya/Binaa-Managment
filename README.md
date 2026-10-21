@@ -100,7 +100,10 @@ npm install
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5001/api
+NEXT_PUBLIC_BLOG_URL=http://localhost:3000
 ```
+
+`NEXT_PUBLIC_BLOG_URL` is the blog site's origin used by the view action in the admin articles table. Set it to the deployed blog URL in production; published articles open in a new tab.
 
 3. تشغيل المشروع
 

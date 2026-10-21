@@ -14,8 +14,8 @@ export default function EditPostPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
-  const [translationReady, setTranslationReady] = useState(false);
-  const [regenerateTranslations, setRegenerateTranslations] = useState(false);
+  const [englishTranslationAvailable, setEnglishTranslationAvailable] =
+    useState(false);
   const [formData, setFormData] = useState({
     title: "",
     excerpt: "",
@@ -25,6 +25,17 @@ export default function EditPostPage() {
     author: "",
     status: "published",
   });
+  const [englishData, setEnglishData] = useState({
+    title: "",
+    excerpt: "",
+    content: "",
+    category: "",
+    tags: "",
+    author: "",
+  });
+  const hasEnglishFields = Object.values(englishData).some((value) =>
+    value.trim(),
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -43,18 +54,20 @@ export default function EditPostPage() {
           author: data.author || "إسلام هداية",
           status: data.status || "published",
         });
-        setTranslationReady(
-          ["en", "de", "fa", "ru"].every((locale) => {
-            const translation = data.translations?.[locale];
-            return (
-              typeof translation?.title === "string" &&
-              typeof translation.excerpt === "string" &&
-              typeof translation.content === "string" &&
-              typeof translation.category === "string" &&
-              Array.isArray(translation.tags) &&
-              typeof translation.author === "string"
-            );
-          }),
+        const english = data.translations?.en || {};
+        setEnglishData({
+          title: english.title || "",
+          excerpt: english.excerpt || "",
+          content: english.content || "",
+          category: english.category || "",
+          tags: Array.isArray(english.tags) ? english.tags.join(", ") : "",
+          author: english.author || "",
+        });
+        setEnglishTranslationAvailable(
+          typeof english.title === "string" &&
+            Boolean(english.title.trim()) &&
+            typeof english.content === "string" &&
+            Boolean(english.content.trim()),
         );
       } catch (error) {
         if (isActive) {
@@ -79,6 +92,11 @@ export default function EditPostPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleEnglishChange = (e) => {
+    const { name, value } = e.target;
+    setEnglishData((prev) => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -87,19 +105,25 @@ export default function EditPostPage() {
     try {
       const data = {
         ...formData,
-        regenerateTranslations,
         tags: formData.tags
           .split(",")
           .map((t) => t.trim())
           .filter(Boolean),
+        englishTranslation: {
+          ...englishData,
+          tags: englishData.tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+        },
       };
       const result = await updatePost(postId, data);
-      setTranslationReady(result.translationsComplete);
+      setEnglishTranslationAvailable(result.englishTranslationAvailable);
       setMessage({
         type: "success",
-        text: result.translationsComplete
-          ? "تم حفظ التعديل والترجمات الأربع في قاعدة البيانات."
-          : "تم حفظ التعديل. المقالة غير منشورة ولا توجد ترجمات كاملة لها.",
+        text: result.englishTranslationAvailable
+          ? "تم حفظ التعديل والنسخة الإنجليزية في قاعدة البيانات."
+          : "تم حفظ التعديل. لا توجد نسخة إنجليزية محفوظة لهذا المقال.",
       });
       setTimeout(() => router.push("/admin/posts"), 1500);
     } catch (error) {
@@ -160,31 +184,14 @@ export default function EditPostPage() {
         className="bg-[var(--nav-bg)] border border-[var(--nav-border]) rounded-2xl p-6 space-y-5"
       >
         <div className="rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/5 p-4 text-sm text-[var(--text-muted)]">
-          {translationReady
-            ? "الترجمات الإنجليزية والألمانية والفارسية والروسية محفوظة مع المقالة."
-            : "لا توجد ترجمات كاملة لهذه المقالة بعد. ستُنشأ تلقائياً عند حفظها منشورة."}
-          <label className="mt-3 flex cursor-pointer items-start gap-2">
-            <input
-              checked={regenerateTranslations}
-              onChange={(event) =>
-                setRegenerateTranslations(event.target.checked)
-              }
-              type="checkbox"
-              className="mt-1 accent-[var(--primary)]"
-            />
-            <span>إعادة إنشاء الترجمات حتى إن لم يتغير المحتوى</span>
-          </label>
+          {englishTranslationAvailable
+            ? "توجد نسخة إنجليزية محفوظة لهذا المقال."
+            : "لا توجد نسخة إنجليزية محفوظة. يمكنك إضافة نسخة اختيارياً."}
+          <p className="mt-1 text-xs">
+            أدخل العنوان والمحتوى الإنجليزي معاً، أو اترك حقول الإنجليزية
+            فارغة لإزالة النسخة الإنجليزية.
+          </p>
         </div>
-        {saving && formData.status === "published" && (
-          <div aria-live="polite" className="space-y-2" role="status">
-            <p className="text-sm text-[var(--text-muted)]">
-              جارٍ تحديث الترجمات المحفوظة قبل إكمال التعديل...
-            </p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--nav-border)]">
-              <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--primary)]" />
-            </div>
-          </div>
-        )}
         <div>
           <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
             العنوان *
@@ -271,6 +278,105 @@ export default function EditPostPage() {
           </div>
         </div>
 
+        <section className="space-y-4 rounded-2xl border border-[var(--nav-border)] p-5">
+          <div>
+            <h3 className="font-semibold text-[var(--foreground)]">
+              English version (optional)
+            </h3>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              أدخل العنوان والمحتوى والتصنيف الإنجليزي معاً. اتركها فارغة
+              لإزالة النسخة الإنجليزية عند الحفظ.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+              English title
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={englishData.title}
+              onChange={handleEnglishChange}
+              required={hasEnglishFields}
+              dir="ltr"
+              className="w-full rounded-xl bg-[var(--background)] border border-[var(--nav-border)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] transition-colors"
+              placeholder="Article title"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+              English excerpt
+            </label>
+            <textarea
+              name="excerpt"
+              value={englishData.excerpt}
+              onChange={handleEnglishChange}
+              rows={2}
+              dir="ltr"
+              className="w-full rounded-xl bg-[var(--background)] border border-[var(--nav-border)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] transition-colors resize-none"
+              placeholder="Short article summary"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+              English content
+            </label>
+            <textarea
+              name="content"
+              value={englishData.content}
+              onChange={handleEnglishChange}
+              required={hasEnglishFields}
+              rows={12}
+              dir="ltr"
+              className="w-full rounded-xl bg-[var(--background)] border border-[var(--nav-border)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] transition-colors resize-none font-mono"
+              placeholder="English article content (Markdown supported)"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                English category
+              </label>
+              <input
+                type="text"
+                name="category"
+                value={englishData.category}
+                onChange={handleEnglishChange}
+                required={hasEnglishFields}
+                dir="ltr"
+                className="w-full rounded-xl bg-[var(--background)] border border-[var(--nav-border)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                English tags
+              </label>
+              <input
+                type="text"
+                name="tags"
+                value={englishData.tags}
+                onChange={handleEnglishChange}
+                dir="ltr"
+                className="w-full rounded-xl bg-[var(--background)] border border-[var(--nav-border)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] transition-colors"
+                placeholder="Comma separated"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
+                English author
+              </label>
+              <input
+                type="text"
+                name="author"
+                value={englishData.author}
+                onChange={handleEnglishChange}
+                dir="ltr"
+                className="w-full rounded-xl bg-[var(--background)] border border-[var(--nav-border)] px-4 py-3 text-sm text-[var(--foreground)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--primary)] transition-colors"
+              />
+            </div>
+          </div>
+        </section>
+
         <div>
           <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">
             الحالة
@@ -301,7 +407,7 @@ export default function EditPostPage() {
           >
             {saving
               ? formData.status === "published"
-                ? "جارٍ تحديث المقال والترجمات..."
+                ? "جارٍ حفظ التغييرات..."
                 : "جارٍ حفظ التغييرات..."
               : "حفظ التغييرات"}
             {saving ? (

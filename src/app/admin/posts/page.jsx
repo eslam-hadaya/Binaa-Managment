@@ -5,13 +5,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   FiPlus,
+  FiEye,
   FiEdit2,
   FiTrash2,
   FiRefreshCw,
   FiCheckCircle,
-  FiAlertCircle,
 } from "react-icons/fi";
 import { getPosts, deletePost } from "@/lib/api";
+
+const BLOG_URL = (
+  process.env.NEXT_PUBLIC_BLOG_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
 
 export default function PostsPage() {
   const router = useRouter();
@@ -182,22 +186,14 @@ export default function PostsPage() {
                       {post.views || 0}
                     </td>
                     <td className="p-3.5 align-middle">
-                      {post.translationsComplete ? (
+                      {post.englishTranslationAvailable ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
                           <FiCheckCircle size={13} />
-                          مترجم
-                        </span>
-                      ) : post.hasTranslations ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-[10px] font-medium text-amber-400"
-                          title={`اللغات المتوفرة: ${(post.translatedLanguages || []).join(", ")}`}
-                        >
-                          <FiAlertCircle size={13} />
-                          ترجمة جزئية ({post.translationCount || 0}/4)
+                          English
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--nav-border)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-muted)]">
-                          غير مترجم
+                          عربي فقط
                         </span>
                       )}
                     </td>
@@ -206,6 +202,28 @@ export default function PostsPage() {
                     </td>
                     <td className="p-3.5 align-middle">
                       <div className="flex items-center justify-center gap-2">
+                        {post.status === "published" ? (
+                          <a
+                            href={`${BLOG_URL}/blog/${encodeURIComponent(post.slug)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`عرض المقال: ${post.title}`}
+                            title="عرض المقال"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-sky-500/20 bg-sky-500/10 text-sky-500 transition hover:bg-sky-500/20"
+                          >
+                            <FiEye size={16} />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            aria-label="عرض المقال متاح بعد النشر"
+                            title="يتاح عرض المقال بعد نشره"
+                            className="flex h-8 w-8 cursor-not-allowed items-center justify-center rounded-lg border border-[var(--nav-border)] text-[var(--text-muted)] opacity-50"
+                          >
+                            <FiEye size={16} />
+                          </button>
+                        )}
                         <Link
                           href={`/admin/posts/${post.id}`}
                           className="flex h-8 w-8 items-center justify-center rounded-lg border border-yellow-500/20 bg-yellow-500/10 text-yellow-500 transition hover:bg-yellow-500/20"

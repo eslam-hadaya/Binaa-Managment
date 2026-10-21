@@ -86,6 +86,31 @@ export async function getPost(id) {
   return data.post;
 }
 
+function assertEnglishTranslationSaved(data, englishTranslation) {
+  if (!englishTranslation || typeof englishTranslation !== "object") return;
+
+  const expectedText = (value) =>
+    typeof value === "string" ? value.trim() : "";
+  const hasEnglishFields = Object.values(englishTranslation).some(
+    (value) =>
+      (typeof value === "string" && value.trim()) ||
+      (Array.isArray(value) && value.length > 0),
+  );
+  if (!hasEnglishFields) return;
+
+  const savedTranslation = data.post?.translations?.en;
+  if (
+    !savedTranslation ||
+    savedTranslation.title !== expectedText(englishTranslation.title) ||
+    savedTranslation.content !== expectedText(englishTranslation.content) ||
+    savedTranslation.category !== expectedText(englishTranslation.category)
+  ) {
+    throw new Error(
+      "لم يؤكد الخادم حفظ العنوان والمحتوى والتصنيف الإنجليزي في قاعدة البيانات. لم يتم تأكيد نجاح العملية.",
+    );
+  }
+}
+
 export async function createPost(postData) {
   const data = await fetchAPI("/posts", {
     method: "POST",
@@ -94,14 +119,14 @@ export async function createPost(postData) {
 
   if (
     data.success !== true ||
-    !data.post ||
-    (postData.status === "published" && data.translationsComplete !== true)
+    !data.post
   ) {
     throw new Error(
-      "لم يؤكد الخادم حفظ المقالة وترجماتها كاملة. تحقق من الاتصال بقاعدة البيانات ثم أعد المحاولة.",
+      "لم يؤكد الخادم حفظ المقالة. تحقق من الاتصال بقاعدة البيانات ثم أعد المحاولة.",
     );
   }
 
+  assertEnglishTranslationSaved(data, postData.englishTranslation);
   return data.post;
 }
 
@@ -114,14 +139,14 @@ export async function updatePost(id, postData) {
   if (
     data.success !== true ||
     !data.post ||
-    typeof data.translationsComplete !== "boolean" ||
-    (postData.status === "published" && data.translationsComplete !== true)
+    typeof data.englishTranslationAvailable !== "boolean"
   ) {
     throw new Error(
-      "لم يؤكد الخادم حفظ التعديل والترجمات كاملة. أعد تشغيل/نشر الخادم المحدّث ثم حاول مجدداً.",
+      "لم يؤكد الخادم حفظ التعديل والنسخة الإنجليزية. أعد تشغيل/نشر الخادم المحدّث ثم حاول مجدداً.",
     );
   }
 
+  assertEnglishTranslationSaved(data, postData.englishTranslation);
   return data;
 }
 
