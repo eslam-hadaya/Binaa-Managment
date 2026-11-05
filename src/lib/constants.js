@@ -9,7 +9,7 @@ export const SITE = {
   telegram: process.env.NEXT_PUBLIC_SITE_TELEGRAM || "EslamCA",
   telegramBotToken: process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN || "",
   telegramChatId: process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID || "",
-  telegramBotToken: "8851900021:AAGLb1kFMrHxT8precDFbySiRX8bGIKUOmE", // ضع التوكن مباشرة
+  telegramBotToken: process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN,
   telegramChatId: "5220737704",
 };
 
