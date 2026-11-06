@@ -1,7 +1,8 @@
 export const SITE = {
   name: process.env.NEXT_PUBLIC_SITE_NAME || "Islam Hadaya",
   email: process.env.NEXT_PUBLIC_SITE_EMAIL || "hdayaaslam34@gmail.com",
-  github: process.env.NEXT_PUBLIC_SITE_GITHUB || "https://github.com/eslam-cmd",
+  github:
+    process.env.NEXT_PUBLIC_SITE_GITHUB || "https://github.com/eslam-hadaya",
   linkedin:
     process.env.NEXT_PUBLIC_SITE_LINKEDIN ||
     "https://www.linkedin.com/in/islam-hadaya",
